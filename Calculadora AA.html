@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ClimaCalc Pro • Climatización & Consumo</title>
+    
+    <!-- Meta tags estilo Web App iOS (PWA / Standalone) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ClimaCalc">
+    <meta name="theme-color" content="#007AFF">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js para visualización -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: [
+                            '-apple-system',
+                            'BlinkMacSystemFont',
+                            '"SF Pro Text"',
+                            '"SF Pro Display"',
+                            '"Helvetica Neue"',
+                            'Arial',
+                            'sans-serif'
+                        ],
+                    },
+                    colors: {
+                        ios: {
+                            blue: '#007AFF',
+                            green: '#34C759',
+                            orange: '#FF9500',
+                            red: '#FF3B30',
+                            purple: '#AF52DE',
+                            teal: '#5AC8FA',
+                            yellow: '#FFCC00',
+                            grayLight: '#F2F2F7',
+                            grayCard: '#FFFFFF',
+                            grayDarkBg: '#000000',
+                            grayDarkCard: '#1C1C1E',
+                            grayDarkElevated: '#2C2C2E',
+                            separatorLight: '#C6C6C8',
+                            separatorDark: '#38383A'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estilos Nativos iOS */
+        :root {
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-subcard: #F9F9FB;
+            --ios-border: rgba(60, 60, 67, 0.12);
+            --ios-text: #000000;
+            --ios-secondary: #8E8E93;
+            --ios-nav-bg: rgba(242, 242, 247, 0.82);
+            --ios-tab-bg: rgba(255, 255, 255, 0.85);
+        }
+
+        .dark {
+            --ios-bg: #000000;
+            --ios-card: #1C1C1E;
+            --ios-subcard: #2C2C2E;
+            --ios-border: rgba(255, 255, 255, 0.12);
+            --ios-text: #FFFFFF;
+            --ios-secondary: #8E8E93;
+            --ios-nav-bg: rgba(22, 22, 24, 0.82);
+            --ios-tab-bg: rgba(28, 28, 30, 0.88);
+        }
+
+        body {
+            background-color: var(--ios-bg);
+            color: var(--ios-text);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        }
+
+        /* Safe areas para iPhone (Dynamic Island & Home Indicator) */
+        .pt-safe {
+            padding-top: max(env(safe-area-inset-top, 0px), 12px);
+        }
+        .pb-safe {
+            padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+        }
+
+        /* iOS Blur backdrop */
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* iOS Toggle Switch */
+        .ios-switch {
+            position: relative;
+            display: inline-block;
+            width: 51px;
+            height: 31px;
+            flex-shrink: 0;
+        }
+        .ios-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .ios-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #E9E9EB;
+            transition: .25s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 31px;
+        }
+        .dark .ios-slider {
+            background-color: #39393D;
+        }
+        .ios-slider:before {
+            position: absolute;
+            content: "";
+            height: 27px;
+            width: 27px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .25s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.16);
+        }
+        input:checked + .ios-slider {
+            background-color: #34C759;
+        }
+        input:checked + .ios-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* iOS Stepper */
+        .ios-stepper {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(118, 118, 128, 0.12);
+            border-radius: 9px;
+            overflow: hidden;
+            height: 32px;
+        }
+        .ios-stepper button {
+            width: 38px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 500;
+            color: #007AFF;
+            transition: background-color 0.15s ease;
+        }
+        .ios-stepper button:active {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        .dark .ios-stepper button:active {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        .ios-stepper .stepper-divider {
+            width: 1px;
+            height: 16px;
+            background-color: rgba(60, 60, 67, 0.18);
+        }
+        .dark .ios-stepper .stepper-divider {
+            background-color: rgba(255, 255, 255, 0.18);
+        }
+
+        /* iOS Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #E5E5EA;
+            border-radius: 3px;
+        }
+        .dark input[type=range]::-webkit-slider-runnable-track {
+            background: #38383A;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -9px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 1px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s ease;
+        }
+        input[type=range]:active::-webkit-slider-thumb {
+            transform: scale(1.15);
+        }
+
+        /* Inset Group Card */
+        .ios-inset-group {
+            background-color: var(--ios-card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 0.5px solid var(--ios-border);
+        }
+        
+        /* Ocultar flechas de números */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* Botón estilo Apple / Feedback táctil */
+        .ios-btn {
+            transition: transform 0.12s ease, opacity 0.12s ease;
+        }
+        .ios-btn:active {
+            transform: scale(0.96);
+            opacity: 0.85;
+        }
+
+        /* Transiciones suaves entre pestañas */
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Toast de notificación estilo iOS */
+        #ios-toast {
+            transform: translateY(-100px);
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
+        }
+        #ios-toast.show {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between selection:bg-ios-blue selection:text-white">
+
+    <!-- TOAST NOTIFICATION (Estilo Dynamic Island / iOS Banner) -->
+    <div id="ios-toast" class="fixed top-3 left-4 right-4 z-50 max-w-sm mx-auto pointer-events-none opacity-0">
+        <div class="ios-blur bg-black/85 dark:bg-white/90 text-white dark:text-black py-2.5 px-4 rounded-full shadow-2xl flex items-center justify-center gap-2 text-xs font-semibold">
+            <svg class="w-4 h-4 text-ios-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span id="toast-message">Ficha técnica copiada al portapapeles</span>
+        </div>
+    </div>
+
+    <!-- MAIN APP SHELL (Optimizado para pantalla de celular 100% nativa) -->
+    <div class="w-full max-w-md mx-auto flex-1 flex flex-col min-h-screen relative shadow-2xl bg-[var(--ios-bg)]">
+
+        <!-- ============================================== -->
+        <!-- 1. HEADER NATIVO iOS (NavBar con Blur)         -->
+        <!-- ============================================== -->
+        <header class="sticky top-0 z-30 pt-safe px-4 pb-2.5 ios-blur bg-[var(--ios-nav-bg)] border-b border-[var(--ios-border)]">
+            <div class="flex items-center justify-between">
+                <!-- Branding -->
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-ios-blue to-ios-teal flex items-center justify-center text-white shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-ios-blue block leading-none">ClimaCalc</span>
+                        <h1 class="text-base font-extrabold tracking-tight leading-tight">Carga Térmica AA</h1>
+                    </div>
+                </div>
+
+                <!-- Botones Superiores (Theme Switcher & Preset Selector) -->
+                <div class="flex items-center gap-1.5">
+                    <!-- Presets Menu Quick Button -->
+                    <button type="button" onclick="openPresetModal()" class="ios-btn text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[var(--ios-card)] border border-[var(--ios-border)] text-ios-blue flex items-center gap-1 shadow-xs">
+                        <span>Plantillas</span>
+                        <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+
+                    <!-- Theme Switcher -->
+                    <button type="button" onclick="toggleTheme()" class="ios-btn p-2 rounded-lg bg-[var(--ios-card)] border border-[var(--ios-border)] text-[var(--ios-text)] shadow-xs" title="Modo oscuro / claro">
+                        <svg id="icon-theme-sun" class="w-4 h-4 hidden text-ios-orange" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
+                        </svg>
+                        <svg id="icon-theme-moon" class="w-4 h-4 text-ios-blue" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resumen Rápido Flotante iOS (Siempre accesible arriba) -->
+            <div class="mt-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-ios-blue/10 via-ios-teal/10 to-ios-blue/10 border border-ios-blue/20 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-ios-blue block">Carga Térmica Requerida</span>
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-xl font-black text-ios-blue tracking-tight" id="badge-top-frigorias">3.250</span>
+                        <span class="text-xs font-semibold opacity-80">fg/h</span>
+                        <span class="text-[11px] opacity-40">•</span>
+                        <span class="text-xs font-bold text-ios-green" id="badge-top-equipo">3.000 fg</span>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-[var(--ios-secondary)] block">Gasto Estimado</span>
+                    <div class="text-sm font-black text-ios-green" id="badge-top-gasto">$ 18.520 / mes</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ============================================== -->
+        <!-- 2. CONTENIDO PRINCIPAL POR PESTAÑAS (Tabs)    -->
+        <!-- ============================================== -->
+        <main class="flex-1 px-4 py-3 space-y-4 pb-28 overflow-y-auto">
+
+            <!-- ------------------------------------------ -->
+            <!-- TAB 1: CÁLCULO DE DIMENSIONES & AMBIENTES  -->
+            <!-- ------------------------------------------ -->
+            <div id="tab-calculo" class="tab-pane active space-y-4">
+                
+                <!-- Sección 1: Ambiente Principal -->
+                <div>
+                    <div class="px-1 mb-1.5 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Dimensiones del Ambiente</span>
+                        <span class="text-xs font-bold text-ios-blue" id="sub-dim-principal">16.0 m² • 41.6 m³</span>
+                    </div>
+
+                    <div class="ios-inset-group divide-y divide-[var(--ios-border)]">
+                        <!-- Largo -->
+                        <div class="p-3.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium block">Largo</span>
+                                <span class="text-xs text-[var(--ios-secondary)]">Longitud de la habitación</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="ios-stepper">
+                                    <button type="button" onclick="modifyStep('input-largo', -0.5)">−</button>
+                                    <div class="stepper-divider"></div>
+                                    <button type="button" onclick="modifyStep('input-largo', 0.5)">+</button>
+                                </div>
+                                <div class="w-16 px-2 py-1 text-center font-bold text-sm bg-[var(--ios-subcard)] rounded-lg border border-[var(--ios-border)]">
+                                    <span id="disp-largo">4.0</span> m
+                                </div>
+                                <input type="hidden" id="input-largo" value="4.0" step="0.1" min="1" max="25">
+                            </div>
+                        </div>
+
+                        <!-- Ancho -->
+                        <div class="p-3.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium block">Ancho</span>
+                                <span class="text-xs text-[var(--ios-secondary)]">Profundidad del espacio</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="ios-stepper">
+                                    <button type="button" onclick="modifyStep('input-ancho', -0.5)">−</button>
+                                    <div class="stepper-divider"></div>
+                                    <button type="button" onclick="modifyStep('input-ancho', 0.5)">+</button>
+                                </div>
+                                <div class="w-16 px-2 py-1 text-center font-bold text-sm bg-[var(--ios-subcard)] rounded-lg border border-[var(--ios-border)]">
+                                    <span id="disp-ancho">4.0</span> m
+                                </div>
+                                <input type="hidden" id="input-ancho" value="4.0" step="0.1" min="1" max="25">
+                            </div>
+                        </div>
+
+                        <!-- Altura de Techo -->
+                        <div class="p-3.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium block">Altura de Techo</span>
+                                <span class="text-xs text-[var(--ios-secondary)]">Piso a cielorraso</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="ios-stepper">
+                                    <button type="button" onclick="modifyStep('input-alto', -0.1)">−</button>
+                                    <div class="stepper-divider"></div>
+                                    <button type="button" onclick="modifyStep('input-alto', 0.1)">+</button>
+                                </div>
+                                <div class="w-16 px-2 py-1 text-center font-bold text-sm bg-[var(--ios-subcard)] rounded-lg border border-[var(--ios-border)]">
+                                    <span id="disp-alto">2.6</span> m
+                                </div>
+                                <input type="hidden" id="input-alto" value="2.6" step="0.1" min="1.8" max="7">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ambientes adicionales integrados sin puerta -->
+                <div>
+                    <div class="px-1 mb-1.5 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Ambientes Pegados / Integrados</span>
+                        <span class="text-xs text-[var(--ios-secondary)]" id="label-volumen">Total: 41.6 m³</span>
+                    </div>
+
+                    <!-- Contenedor dinámico -->
+                    <div id="contenedor-ambientes-extra" class="space-y-2 mb-2"></div>
+
+                    <!-- Botón agregar ambiente estilo iOS -->
+                    <button type="button" onclick="agregarAmbienteAdicional()" class="ios-btn w-full py-3 px-4 rounded-2xl bg-[var(--ios-card)] border border-[var(--ios-border)] text-ios-blue font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        + Agregar Cocina o Pasillo Abierto
+                    </button>
+                </div>
+
+                <!-- Sección 2: Techo y Muros al Sol -->
+                <div>
+                    <div class="px-1 mb-1.5">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Aislación & Orientación Solar</span>
+                    </div>
+
+                    <div class="ios-inset-group divide-y divide-[var(--ios-border)]">
+                        <!-- Tipo de Techo -->
+                        <div class="p-3.5">
+                            <label class="text-sm font-medium block mb-1">Tipo de Techo</label>
+                            <select id="select-techo" onchange="calculateThermalLoad()" class="w-full py-2.5 px-3 bg-[var(--ios-subcard)] rounded-xl text-xs font-semibold text-[var(--ios-text)] border border-[var(--ios-border)] focus:outline-none focus:ring-2 focus:ring-ios-blue">
+                                <option value="1.0">🏢 Piso intermedio (departamento / sombra)</option>
+                                <option value="1.15" selected>🏠 Losa o cielorraso con aislación estándar</option>
+                                <option value="1.30">🧱 Techo de chapa/teja con lana de vidrio</option>
+                                <option value="1.50">☀️ Chapa expuesta SIN aislante (muy caluroso)</option>
+                            </select>
+                        </div>
+
+                        <!-- Muros Exteriores al Sol -->
+                        <div class="p-3.5">
+                            <label class="text-sm font-medium block mb-1">Paredes Exteriores al Sol Fuerte (Tarde / Oeste)</label>
+                            <select id="select-muros" onchange="calculateThermalLoad()" class="w-full py-2.5 px-3 bg-[var(--ios-subcard)] rounded-xl text-xs font-semibold text-[var(--ios-text)] border border-[var(--ios-border)] focus:outline-none focus:ring-2 focus:ring-ios-blue">
+                                <option value="0">0 paredes (interior protegido / sombreado)</option>
+                                <option value="1" selected>1 pared al sol directo de la tarde</option>
+                                <option value="2">2 paredes al sol (esquina expuesta)</option>
+                                <option value="3">3 o más paredes (casa independiente exenta)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección 3: Ventanas y Vidrios -->
+                <div>
+                    <div class="px-1 mb-1.5">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Ventanas y Aberturas</span>
+                    </div>
+
+                    <div class="ios-inset-group divide-y divide-[var(--ios-border)]">
+                        <!-- Ventanas al Sol -->
+                        <div class="p-3.5 space-y-1.5">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-medium">Ventana con Sol Directo</span>
+                                <span class="font-bold text-ios-red"><span id="val-vidrio-sol">2.0</span> m²</span>
+                            </div>
+                            <input type="range" id="range-vidrio-sol" min="0" max="15" step="0.5" value="2.0">
+                            <span class="text-[10px] text-[var(--ios-secondary)] block">Aporte: ~250 fg/h por m² (invernadero)</span>
+                        </div>
+
+                        <!-- Ventanas a la Sombra -->
+                        <div class="p-3.5 space-y-1.5">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-medium">Ventana a la Sombra / Cortina Blackout</span>
+                                <span class="font-bold text-ios-blue"><span id="val-vidrio-sombra">1.5</span> m²</span>
+                            </div>
+                            <input type="range" id="range-vidrio-sombra" min="0" max="15" step="0.5" value="1.5">
+                            <span class="text-[10px] text-[var(--ios-secondary)] block">Aporte: ~90 fg/h por m² (conducción)</span>
+                        </div>
+
+                        <!-- Switch DVH -->
+                        <div class="p-3.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium block">Doble Vidrio Hermético (DVH)</span>
+                                <span class="text-xs text-[var(--ios-secondary)]">Reduce 25% la ganancia de vidrio</span>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="check-dvh" onchange="calculateThermalLoad()">
+                                <span class="ios-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección 4: Cargas Internas (Personas, Equipos, Cocina) -->
+                <div>
+                    <div class="px-1 mb-1.5">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Ocupantes y Artefactos</span>
+                    </div>
+
+                    <div class="ios-inset-group divide-y divide-[var(--ios-border)]">
+                        <!-- Personas -->
+                        <div class="p-3.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium block">Personas Habituales</span>
+                                <span class="text-xs text-[var(--ios-secondary)]">~130 fg/h por persona</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="ios-stepper">
+                                    <button type="button" onclick="modifyCounter('input-personas', -1)">−</button>
+                                    <div class="stepper-divider"></div>
+                                    <button type="button" onclick="modifyCounter('input-personas', 1)">+</button>
+                                </div>
+                                <span class="w-8 text-center font-bold text-sm text-ios-green" id="val-personas">2</span>
+                                <input type="hidden" id="input-personas" min="1" max="50" value="2">
+                            </div>
+                        </div>
+
+                        <!-- Equipos Eléctricos -->
+                        <div class="p-3.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium block">Equipos Activos (TV, PC, Play)</span>
+                                <span class="text-xs text-[var(--ios-secondary)]">~110 fg/h por artefacto</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="ios-stepper">
+                                    <button type="button" onclick="modifyCounter('input-equipos', -1)">−</button>
+                                    <div class="stepper-divider"></div>
+                                    <button type="button" onclick="modifyCounter('input-equipos', 1)">+</button>
+                                </div>
+                                <span class="w-8 text-center font-bold text-sm text-ios-purple" id="val-equipos">2</span>
+                                <input type="hidden" id="input-equipos" min="0" max="30" value="2">
+                            </div>
+                        </div>
+
+                        <!-- Switch Cocina Integrada -->
+                        <div class="p-3.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium block">Cocina u Horno en el Ambiente</span>
+                                <span class="text-xs text-[var(--ios-secondary)]">Suma +800 fg/h por radiación</span>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="check-cocina" onchange="calculateThermalLoad()">
+                                <span class="ios-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón avanzar a resultados -->
+                <button type="button" onclick="switchTab('resumen')" class="ios-btn w-full py-3.5 rounded-2xl bg-ios-blue text-white font-extrabold text-sm shadow-md flex items-center justify-center gap-2">
+                    <span>Ver Equipo Recomendado & Gráfico</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+
+            </div>
+
+
+            <!-- ------------------------------------------ -->
+            <!-- TAB 2: CONSUMO ELÉCTRICO Y FACTURA EN PESOS -->
+            <!-- ------------------------------------------ -->
+            <div id="tab-consumo" class="tab-pane space-y-4">
+                
+                <!-- Parámetros de uso -->
+                <div>
+                    <div class="px-1 mb-1.5">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Parámetros de Uso & Tarifa</span>
+                    </div>
+
+                    <div class="ios-inset-group divide-y divide-[var(--ios-border)]">
+                        <!-- Horas de uso -->
+                        <div class="p-3.5 space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-medium">Horas de uso diario</span>
+                                <span class="font-bold text-ios-blue text-sm"><span id="val-horas-dia">8</span> hs / día</span>
+                            </div>
+                            <input type="range" id="range-horas-dia" min="1" max="24" step="1" value="8" oninput="calculateThermalLoad()">
+                            <!-- Atajos iOS -->
+                            <div class="flex justify-between pt-1">
+                                <button type="button" onclick="setHoras(4)" class="px-2.5 py-1 text-[11px] font-semibold bg-[var(--ios-subcard)] rounded-lg text-ios-blue">4h (Siesta)</button>
+                                <button type="button" onclick="setHoras(8)" class="px-2.5 py-1 text-[11px] font-semibold bg-[var(--ios-subcard)] rounded-lg text-ios-blue">8h (Estándar)</button>
+                                <button type="button" onclick="setHoras(12)" class="px-2.5 py-1 text-[11px] font-semibold bg-[var(--ios-subcard)] rounded-lg text-ios-blue">12h (Intensivo)</button>
+                                <button type="button" onclick="setHoras(24)" class="px-2.5 py-1 text-[11px] font-semibold bg-[var(--ios-subcard)] rounded-lg text-ios-blue">24h (Full)</button>
+                            </div>
+                        </div>
+
+                        <!-- Días por mes -->
+                        <div class="p-3.5 flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium block">Días de uso al mes</span>
+                                <span class="text-xs text-[var(--ios-secondary)]">Mes estándar</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="ios-stepper">
+                                    <button type="button" onclick="modifyStep('input-dias-mes', -1)">−</button>
+                                    <div class="stepper-divider"></div>
+                                    <button type="button" onclick="modifyStep('input-dias-mes', 1)">+</button>
+                                </div>
+                                <span class="w-12 text-center font-bold text-sm" id="disp-dias-mes">30 d</span>
+                                <input type="hidden" id="input-dias-mes" value="30" min="1" max="30">
+                            </div>
+                        </div>
+
+                        <!-- Tarifa $/kWh -->
+                        <div class="p-3.5 space-y-2">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-sm font-medium block">Tarifa de Luz ($ / kWh)</span>
+                                    <span class="text-xs text-[var(--ios-secondary)]">Costo en tu factura (Edenor, Edesur, etc.)</span>
+                                </div>
+                                <div class="flex items-center gap-1 font-bold text-sm bg-[var(--ios-subcard)] px-3 py-1.5 rounded-xl border border-[var(--ios-border)]">
+                                    <span class="text-[var(--ios-secondary)]">$</span>
+                                    <input type="number" id="input-tarifa-kwh" value="130" min="10" max="1000" step="5" oninput="calculateThermalLoad()" class="w-14 text-right bg-transparent focus:outline-none font-bold">
+                                </div>
+                            </div>
+                            <!-- Tarifas referenciales argentinas -->
+                            <div class="flex gap-1.5 pt-1 text-[11px]">
+                                <button type="button" onclick="setTarifa(150)" class="flex-1 py-1 px-1.5 text-center font-medium bg-[var(--ios-subcard)] rounded-lg text-[var(--ios-secondary)]">N1 (~$150)</button>
+                                <button type="button" onclick="setTarifa(65)" class="flex-1 py-1 px-1.5 text-center font-medium bg-[var(--ios-subcard)] rounded-lg text-[var(--ios-secondary)]">N2 (~$65)</button>
+                                <button type="button" onclick="setTarifa(90)" class="flex-1 py-1 px-1.5 text-center font-medium bg-[var(--ios-subcard)] rounded-lg text-[var(--ios-secondary)]">N3 (~$90)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparativa Inverter vs Tradicional -->
+                <div>
+                    <div class="px-1 mb-1.5 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Comparativa Mensual</span>
+                        <span class="text-xs font-bold text-ios-green">Ahorro de hasta ~45%</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Tarjeta Inverter -->
+                        <div class="p-4 rounded-2xl bg-gradient-to-br from-ios-green/10 to-ios-green/5 border border-ios-green/30 relative">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[11px] font-bold text-ios-green uppercase tracking-wide">Inverter A</span>
+                                <span class="w-2 h-2 rounded-full bg-ios-green"></span>
+                            </div>
+                            <div class="text-xl font-black text-ios-green tracking-tight" id="costo-inverter-mes">$ 0</div>
+                            <div class="text-[11px] text-[var(--ios-secondary)] mt-1 font-medium">
+                                <span id="kwh-inverter-mes" class="font-bold text-[var(--ios-text)]">0</span> kWh / mes
+                            </div>
+                            <div class="text-[10px] text-[var(--ios-secondary)] mt-0.5">
+                                Potencia: <span id="potencia-inverter-kw" class="font-semibold">0 kW</span>
+                            </div>
+                        </div>
+
+                        <!-- Tarjeta On/Off Tradicional -->
+                        <div class="p-4 rounded-2xl bg-[var(--ios-card)] border border-[var(--ios-border)]">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[11px] font-bold text-[var(--ios-secondary)] uppercase tracking-wide">On / Off</span>
+                                <span class="w-2 h-2 rounded-full bg-[var(--ios-secondary)]"></span>
+                            </div>
+                            <div class="text-xl font-black text-[var(--ios-text)] tracking-tight" id="costo-onoff-mes">$ 0</div>
+                            <div class="text-[11px] text-[var(--ios-secondary)] mt-1 font-medium">
+                                <span id="kwh-onoff-mes" class="font-bold text-[var(--ios-text)]">0</span> kWh / mes
+                            </div>
+                            <div class="text-[10px] text-[var(--ios-secondary)] mt-0.5">
+                                Potencia: <span id="potencia-onoff-kw" class="font-semibold">0 kW</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Banner Destacado de Ahorro Económico -->
+                <div class="p-4 rounded-2xl bg-gradient-to-r from-ios-green/20 via-ios-teal/15 to-ios-blue/20 border border-ios-green/40 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-ios-green block">Ahorro mensual con Inverter:</span>
+                        <div class="text-2xl font-black text-ios-green tracking-tight" id="ahorro-mensual-pesos">$ 0 / mes</div>
+                        <span class="text-[11px] text-[var(--ios-secondary)] block mt-0.5">
+                            Temporada estival (4 meses): <strong class="text-ios-green" id="ahorro-anual-pesos">$ 0</strong>
+                        </span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-black text-white bg-ios-green px-2.5 py-1 rounded-full shadow-sm" id="ahorro-pct">-45%</span>
+                    </div>
+                </div>
+
+                <!-- Explicación Técnica -->
+                <div class="ios-inset-group p-4 space-y-1.5 text-xs text-[var(--ios-secondary)]">
+                    <span class="font-bold text-[var(--ios-text)] block">¿Por qué consume menos el Inverter?</span>
+                    <p class="leading-relaxed">
+                        El compresor no apaga y prende continuamente; modula suavemente la velocidad para mantener los 24°C fijos. Esto elimina las corrientes de pico de arranque y optimiza el consumo en días calurosos.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- ------------------------------------------ -->
+            <!-- TAB 3: RESUMEN, GRÁFICO & RECOMENDACIÓN    -->
+            <!-- ------------------------------------------ -->
+            <div id="tab-resumen" class="tab-pane space-y-4">
+
+                <!-- Hero Card: Carga Térmica Total -->
+                <div class="p-5 rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950 to-indigo-950 text-white shadow-xl relative overflow-hidden border border-sky-800/40">
+                    <div class="flex items-center justify-between pb-2 border-b border-white/10 text-xs">
+                        <span class="uppercase tracking-wider font-semibold text-sky-300">Carga Térmica Total</span>
+                        <span class="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-200 border border-sky-400/30 text-[10px] font-bold">Mercado Argentino</span>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-black tracking-tight" id="res-frigorias">3.250</span>
+                            <span class="text-base font-bold text-sky-300">Frigorías / h</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-sky-200/80 mt-1">
+                            <span><strong class="text-white" id="res-btu">13.000</strong> BTU/h</span>
+                            <span>•</span>
+                            <span><strong class="text-white" id="res-kw">3.78</strong> kW Térmicos</span>
+                        </div>
+                    </div>
+
+                    <!-- Equipo Comercial Recomendado -->
+                    <div class="mt-4 p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] uppercase font-bold text-sky-200">Modelo Comercial Sugerido:</span>
+                            <span id="badge-ajuste" class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-ios-green text-white">Óptimo</span>
+                        </div>
+                        <div class="text-lg font-extrabold text-white mt-0.5" id="res-comercial-nombre">3.000 Frigorías (12.000 BTU)</div>
+                        <p class="text-xs text-sky-100/80 mt-1 leading-snug" id="res-comercial-desc">
+                            Margen óptimo para mantener 24°C confortables en plena ola de calor argentina.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Gráfico Donut de Desglose Térmico -->
+                <div>
+                    <div class="px-1 mb-1.5 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Desglose de Ganancia Térmica</span>
+                        <span class="text-xs text-[var(--ios-secondary)]">kcal/h</span>
+                    </div>
+
+                    <div class="ios-inset-group p-4">
+                        <div class="relative h-48 w-full flex items-center justify-center">
+                            <canvas id="thermalChart"></canvas>
+                        </div>
+
+                        <!-- Desglose por factores -->
+                        <div class="mt-3 pt-3 border-t border-[var(--ios-border)] space-y-2 text-xs">
+                            <div class="flex justify-between items-center">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Volumen & Cerramientos:
+                                </span>
+                                <span id="break-volumen" class="font-bold">1.850 fg</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Ventanas & Radiación Sol:
+                                </span>
+                                <span id="break-ventanas" class="font-bold">620 fg</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-ios-green"></span> Personas Habituales:
+                                </span>
+                                <span id="break-personas" class="font-bold">260 fg</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-ios-purple"></span> Equipos & Cocina:
+                                </span>
+                                <span id="break-equipos" class="font-bold">200 fg</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Escalas del Mercado Argentino -->
+                <div>
+                    <div class="px-1 mb-1.5">
+                        <span class="text-xs font-semibold text-[var(--ios-secondary)] uppercase tracking-wider">Escalones de Equipos en Argentina</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-xs" id="market-ladder">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Botones de Acción (Compartir WhatsApp & Copiar Ficha) -->
+                <div class="space-y-2 pt-1">
+                    <!-- Compartir por WhatsApp -->
+                    <button type="button" onclick="shareWhatsApp()" class="ios-btn w-full py-3.5 rounded-2xl bg-[#25D366] text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+                        </svg>
+                        <span>Compartir Ficha por WhatsApp</span>
+                    </button>
+
+                    <!-- Copiar Ficha Técnica -->
+                    <button type="button" onclick="copyReport()" class="ios-btn w-full py-3.5 rounded-2xl bg-ios-blue text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <span id="btn-copy-text">Copiar Ficha Técnica Completa</span>
+                    </button>
+
+                    <!-- Imprimir / PDF -->
+                    <button type="button" onclick="window.print()" class="ios-btn w-full py-3 rounded-2xl bg-[var(--ios-card)] border border-[var(--ios-border)] text-[var(--ios-text)] font-semibold text-xs flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        <span>Imprimir / Exportar a PDF</span>
+                    </button>
+                </div>
+
+            </div>
+
+        </main>
+
+        <!-- ============================================== -->
+        <!-- 3. BARRA INFERIOR DE PESTAÑAS (iOS TabBar)    -->
+        <!-- ============================================== -->
+        <nav class="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto ios-blur bg-[var(--ios-tab-bg)] border-t border-[var(--ios-border)] pb-safe">
+            <div class="grid grid-cols-3 h-14">
+                
+                <!-- Tab 1: Cálculo -->
+                <button type="button" onclick="switchTab('calculo')" id="tab-btn-calculo" class="flex flex-col items-center justify-center text-ios-blue transition-colors">
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="text-[10px] font-bold">Cálculo</span>
+                </button>
+
+                <!-- Tab 2: Consumo Eléctrico -->
+                <button type="button" onclick="switchTab('consumo')" id="tab-btn-consumo" class="flex flex-col items-center justify-center text-[var(--ios-secondary)] hover:text-ios-blue transition-colors">
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <span class="text-[10px] font-bold">Consumo $</span>
+                </button>
+
+                <!-- Tab 3: Resumen & Equipo -->
+                <button type="button" onclick="switchTab('resumen')" id="tab-btn-resumen" class="flex flex-col items-center justify-center text-[var(--ios-secondary)] hover:text-ios-blue transition-colors">
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <span class="text-[10px] font-bold">Resumen</span>
+                </button>
+
+            </div>
+        </nav>
+
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL DE PLANTILLAS RÁPIDAS (iOS Action Sheet) -->
+    <!-- ============================================== -->
+    <div id="modal-presets" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs hidden flex items-end sm:items-center justify-center p-4">
+        <div class="w-full max-w-sm rounded-3xl bg-[var(--ios-card)] border border-[var(--ios-border)] p-4 space-y-3 shadow-2xl">
+            <div class="text-center pb-2 border-b border-[var(--ios-border)]">
+                <span class="text-xs font-bold uppercase tracking-wider text-[var(--ios-secondary)]">Plantillas Rápidas</span>
+                <h3 class="text-sm font-extrabold mt-0.5">Elige un tipo de ambiente</h3>
+            </div>
+
+            <div class="space-y-1.5">
+                <button type="button" onclick="loadPreset('dormitorio'); closePresetModal()" class="ios-btn w-full p-3 rounded-2xl bg-[var(--ios-subcard)] flex items-center justify-between text-left">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🛏️</span>
+                        <div>
+                            <span class="text-xs font-bold block">Dormitorio Estándar</span>
+                            <span class="text-[10px] text-[var(--ios-secondary)]">3.5m x 3.5m • 2 Personas • TV</span>
+                        </div>
+                    </div>
+                    <span class="text-xs text-ios-blue font-bold">Cargar</span>
+                </button>
+
+                <button type="button" onclick="loadPreset('living'); closePresetModal()" class="ios-btn w-full p-3 rounded-2xl bg-[var(--ios-subcard)] flex items-center justify-between text-left">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🛋️</span>
+                        <div>
+                            <span class="text-xs font-bold block">Living / Comedor Integrado</span>
+                            <span class="text-[10px] text-[var(--ios-secondary)]">5m x 4m + Comedor Pegado</span>
+                        </div>
+                    </div>
+                    <span class="text-xs text-ios-blue font-bold">Cargar</span>
+                </button>
+
+                <button type="button" onclick="loadPreset('oficina'); closePresetModal()" class="ios-btn w-full p-3 rounded-2xl bg-[var(--ios-subcard)] flex items-center justify-between text-left">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">💼</span>
+                        <div>
+                            <span class="text-xs font-bold block">Oficina / Estudio</span>
+                            <span class="text-[10px] text-[var(--ios-secondary)]">6m x 4.5m • 5 Personas • 6 PCs</span>
+                        </div>
+                    </div>
+                    <span class="text-xs text-ios-blue font-bold">Cargar</span>
+                </button>
+
+                <button type="button" onclick="loadPreset('monoambiente'); closePresetModal()" class="ios-btn w-full p-3 rounded-2xl bg-[var(--ios-subcard)] flex items-center justify-between text-left">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🍳</span>
+                        <div>
+                            <span class="text-xs font-bold block">Monoambiente con Cocina</span>
+                            <span class="text-[10px] text-[var(--ios-secondary)]">6.5m x 3.8m • Anafe / Horno activo</span>
+                        </div>
+                    </div>
+                    <span class="text-xs text-ios-blue font-bold">Cargar</span>
+                </button>
+            </div>
+
+            <button type="button" onclick="closePresetModal()" class="ios-btn w-full py-3 rounded-2xl bg-[var(--ios-subcard)] text-ios-red font-bold text-xs mt-2">
+                Cancelar
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- SCRIPT DE LÓGICA Y COMPONENTES iOS             -->
+    <!-- ============================================== -->
+    <script>
+        // Escalones comerciales habituales en el mercado argentino
+        const ESCALONES_COMERCIALES = [
+            { fg: 2250, btu: 9000, nombre: "2.250 Frigorías (9.000 BTU)", kw: 2.6, eer_onoff: 2.9, eer_inverter: 3.8 },
+            { fg: 3000, btu: 12000, nombre: "3.000 Frigorías (12.000 BTU)", kw: 3.5, eer_onoff: 2.9, eer_inverter: 3.9 },
+            { fg: 4500, btu: 18000, nombre: "4.500 Frigorías (18.000 BTU)", kw: 5.2, eer_onoff: 2.8, eer_inverter: 3.8 },
+            { fg: 5500, btu: 22000, nombre: "5.500 Frigorías (22.000 BTU)", kw: 6.4, eer_onoff: 2.8, eer_inverter: 3.7 },
+            { fg: 6000, btu: 24000, nombre: "6.000 Frigorías (24.000 BTU)", kw: 7.0, eer_onoff: 2.8, eer_inverter: 3.7 },
+            { fg: 7500, btu: 30000, nombre: "7.500 Frigorías (30.000 BTU)", kw: 8.8, eer_onoff: 2.7, eer_inverter: 3.6 },
+            { fg: 9000, btu: 36000, nombre: "9.000 Frigorías (36.000 BTU)", kw: 10.5, eer_onoff: 2.7, eer_inverter: 3.6 }
+        ];
+
+        let ambientesAdicionales = [];
+        let nextAmbienteId = 1;
+        let chartInstance = null;
+
+        // --- GESTIÓN DE PESTAÑAS (iOS TabBar) ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            const activePane = document.getElementById(`tab-${tabId}`);
+            if (activePane) activePane.classList.add('active');
+
+            // Actualizar estilo en la barra de navegación
+            const tabs = ['calculo', 'consumo', 'resumen'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (btn) {
+                    if (t === tabId) {
+                        btn.className = "flex flex-col items-center justify-center text-ios-blue transition-colors";
+                    } else {
+                        btn.className = "flex flex-col items-center justify-center text-[var(--ios-secondary)] hover:text-ios-blue transition-colors";
+                    }
+                }
+            });
+
+            // Scroll suave hacia arriba
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (tabId === 'resumen' && chartInstance) {
+                setTimeout(() => chartInstance.resize(), 100);
+            }
+        }
+
+        // --- STEPPERS Y CONTADORES iOS ---
+        function modifyStep(inputId, delta) {
+            const input = document.getElementById(inputId);
+            let val = parseFloat(input.value) || 0;
+            val = Math.round((val + delta) * 10) / 10;
+            const min = parseFloat(input.min) || 0;
+            const max = parseFloat(input.max) || 100;
+            if (val >= min && val <= max) {
+                input.value = val;
+                const dispId = inputId.replace('input-', 'disp-');
+                const disp = document.getElementById(dispId);
+                if (disp) {
+                    disp.innerText = inputId === 'input-dias-mes' ? `${val} d` : val.toFixed(1);
+                }
+                calculateThermalLoad();
+            }
+        }
+
+        function modifyCounter(inputId, delta) {
+            const input = document.getElementById(inputId);
+            let val = parseInt(input.value) || 0;
+            val += delta;
+            const min = parseInt(input.min) || 0;
+            const max = parseInt(input.max) || 100;
+            if (val >= min && val <= max) {
+                input.value = val;
+                const labelId = inputId.replace('input-', 'val-');
+                const label = document.getElementById(labelId);
+                if (label) label.innerText = val;
+                calculateThermalLoad();
+            }
+        }
+
+        // --- THEME MANAGEMENT ---
+        function initTheme() {
+            const savedTheme = localStorage.getItem('climacalc_theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+                updateThemeIcons(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcons(false);
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('climacalc_theme', isDark ? 'dark' : 'light');
+            updateThemeIcons(isDark);
+            if (chartInstance) {
+                chartInstance.data.datasets[0].borderColor = isDark ? '#1C1C1E' : '#FFFFFF';
+                chartInstance.update();
+            }
+        }
+
+        function updateThemeIcons(isDark) {
+            const sun = document.getElementById('icon-theme-sun');
+            const moon = document.getElementById('icon-theme-moon');
+            if (isDark) {
+                sun.classList.remove('hidden');
+                moon.classList.add('hidden');
+            } else {
+                sun.classList.add('hidden');
+                moon.classList.remove('hidden');
+            }
+        }
+
+        // --- MODAL DE PRESETS ---
+        function openPresetModal() {
+            document.getElementById('modal-presets').classList.remove('hidden');
+        }
+        function closePresetModal() {
+            document.getElementById('modal-presets').classList.add('hidden');
+        }
+
+        // --- AMBIENTES ADICIONALES INTEGRADOS ---
+        function agregarAmbienteAdicional(nombrePreset = '', largoDef = 3.0, anchoDef = 2.5, altoDef = 2.6) {
+            const id = nextAmbienteId++;
+            const defaultName = nombrePreset || `Sector extra ${id}`;
+            
+            ambientesAdicionales.push({
+                id: id,
+                nombre: defaultName,
+                largo: largoDef,
+                ancho: anchoDef,
+                alto: altoDef
+            });
+
+            renderizarAmbientesAdicionales();
+            calculateThermalLoad();
+        }
+
+        function eliminarAmbienteAdicional(id) {
+            ambientesAdicionales = ambientesAdicionales.filter(a => a.id !== id);
+            renderizarAmbientesAdicionales();
+            calculateThermalLoad();
+        }
+
+        function actualizarDatosAmbiente(id, campo, valor) {
+            const amb = ambientesAdicionales.find(a => a.id === id);
+            if (amb) {
+                if (campo === 'nombre') {
+                    amb[campo] = valor;
+                } else {
+                    amb[campo] = parseFloat(valor) || 0;
+                }
+                const badge = document.getElementById(`sub-dim-extra-${id}`);
+                if (badge) {
+                    const sup = amb.largo * amb.ancho;
+                    const vol = sup * amb.alto;
+                    badge.innerText = `${sup.toFixed(1)} m² • ${vol.toFixed(1)} m³`;
+                }
+                calculateThermalLoad();
+            }
+        }
+
+        function renderizarAmbientesAdicionales() {
+            const cont = document.getElementById('contenedor-ambientes-extra');
+            cont.innerHTML = '';
+
+            ambientesAdicionales.forEach(amb => {
+                const sup = amb.largo * amb.ancho;
+                const vol = sup * amb.alto;
+
+                const div = document.createElement('div');
+                div.className = "ios-inset-group p-3 border border-ios-orange/30 bg-ios-orange/5";
+                div.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-ios-orange"></span>
+                            <input type="text" value="${amb.nombre}" onchange="actualizarDatosAmbiente(${amb.id}, 'nombre', this.value)" 
+                                   class="text-xs font-bold bg-transparent border-b border-transparent hover:border-ios-orange/40 focus:border-ios-orange focus:outline-none">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="sub-dim-extra-${amb.id}" class="text-[11px] text-[var(--ios-secondary)] font-semibold">${sup.toFixed(1)} m² • ${vol.toFixed(1)} m³</span>
+                            <button type="button" onclick="eliminarAmbienteAdicional(${amb.id})" class="text-ios-red p-1 text-xs font-bold">Quitar</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                            <span class="text-[10px] text-[var(--ios-secondary)] block">Largo (m)</span>
+                            <input type="number" value="${amb.largo}" step="0.1" min="0.5" max="25" oninput="actualizarDatosAmbiente(${amb.id}, 'largo', this.value)" class="w-full p-1.5 rounded-lg bg-[var(--ios-card)] border border-[var(--ios-border)] font-bold text-center">
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-[var(--ios-secondary)] block">Ancho (m)</span>
+                            <input type="number" value="${amb.ancho}" step="0.1" min="0.5" max="25" oninput="actualizarDatosAmbiente(${amb.id}, 'ancho', this.value)" class="w-full p-1.5 rounded-lg bg-[var(--ios-card)] border border-[var(--ios-border)] font-bold text-center">
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-[var(--ios-secondary)] block">Alto (m)</span>
+                            <input type="number" value="${amb.alto}" step="0.1" min="1.8" max="7" oninput="actualizarDatosAmbiente(${amb.id}, 'alto', this.value)" class="w-full p-1.5 rounded-lg bg-[var(--ios-card)] border border-[var(--ios-border)] font-bold text-center">
+                        </div>
+                    </div>
+                `;
+                cont.appendChild(div);
+            });
+        }
+
+        // --- CHART INITIALIZATION ---
+        function initChart() {
+            const ctx = document.getElementById('thermalChart').getContext('2d');
+            const isDark = document.documentElement.classList.contains('dark');
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Volumen & Techo', 'Ventanas & Sol', 'Personas', 'Equipos & Cocina'],
+                    datasets: [{
+                        data: [2000, 500, 260, 200],
+                        backgroundColor: [
+                            '#007AFF', // iOS Blue
+                            '#FF3B30', // iOS Red
+                            '#34C759', // iOS Green
+                            '#AF52DE'  // iOS Purple
+                        ],
+                        borderWidth: 2,
+                        borderColor: isDark ? '#1C1C1E' : '#FFFFFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '72%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw || 0;
+                                    return ` ${context.label}: ${Math.round(val).toLocaleString('es-AR')} fg/h`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- CÁLCULO PRINCIPAL ---
+        function calculateThermalLoad() {
+            const largo = parseFloat(document.getElementById('input-largo').value) || 0;
+            const ancho = parseFloat(document.getElementById('input-ancho').value) || 0;
+            const alto = parseFloat(document.getElementById('input-alto').value) || 0;
+
+            const supPpal = largo * ancho;
+            const volPpal = supPpal * alto;
+
+            document.getElementById('sub-dim-principal').innerText = `${supPpal.toFixed(1)} m² • ${volPpal.toFixed(1)} m³`;
+
+            let supTotal = supPpal;
+            let volTotal = volPpal;
+
+            ambientesAdicionales.forEach(a => {
+                const s = (a.largo || 0) * (a.ancho || 0);
+                const v = s * (a.alto || 0);
+                supTotal += s;
+                volTotal += v;
+            });
+
+            document.getElementById('label-volumen').innerText = `Total: ${volTotal.toFixed(1)} m³ (${(1 + ambientesAdicionales.length)} amb.)`;
+
+            const factorTecho = parseFloat(document.getElementById('select-techo').value) || 1.0;
+            const murosSol = parseInt(document.getElementById('select-muros').value) || 0;
+
+            const vidrioSol = parseFloat(document.getElementById('range-vidrio-sol').value) || 0;
+            const vidrioSombra = parseFloat(document.getElementById('range-vidrio-sombra').value) || 0;
+            const esDvh = document.getElementById('check-dvh').checked;
+
+            const personas = parseInt(document.getElementById('input-personas').value) || 0;
+            const equipos = parseInt(document.getElementById('input-equipos').value) || 0;
+            const tieneCocina = document.getElementById('check-cocina').checked;
+
+            document.getElementById('val-vidrio-sol').innerText = vidrioSol.toFixed(1);
+            document.getElementById('val-vidrio-sombra').innerText = vidrioSombra.toFixed(1);
+            document.getElementById('val-personas').innerText = personas;
+            document.getElementById('val-equipos').innerText = equipos;
+
+            // A) Carga volumen y cerramientos
+            let coefVolumen = 40 * factorTecho + (murosSol * 4.5);
+            const cargaVolumen = volTotal * coefVolumen;
+
+            // B) Carga vidrios
+            const factorDvh = esDvh ? 0.75 : 1.0;
+            const cargaVidrios = ((vidrioSol * 250) + (vidrioSombra * 90)) * factorDvh;
+
+            // C) Personas
+            const cargaPersonas = personas * 130;
+
+            // D) Equipos y cocina
+            let cargaEquipos = equipos * 110;
+            if (tieneCocina) cargaEquipos += 800;
+
+            const totalFrigorias = cargaVolumen + cargaVidrios + cargaPersonas + cargaEquipos;
+            const totalBTU = totalFrigorias * 3.968;
+            const totalKW = (totalBTU / 3412.142);
+
+            // Display de resultados
+            const txtFg = Math.round(totalFrigorias).toLocaleString('es-AR');
+            document.getElementById('res-frigorias').innerText = txtFg;
+            document.getElementById('badge-top-frigorias').innerText = txtFg;
+
+            document.getElementById('res-btu').innerText = Math.round(totalBTU).toLocaleString('es-AR');
+            document.getElementById('res-kw').innerText = totalKW.toFixed(2);
+
+            // Desglose
+            document.getElementById('break-volumen').innerText = `${Math.round(cargaVolumen).toLocaleString('es-AR')} fg`;
+            document.getElementById('break-ventanas').innerText = `${Math.round(cargaVidrios).toLocaleString('es-AR')} fg`;
+            document.getElementById('break-personas').innerText = `${Math.round(cargaPersonas).toLocaleString('es-AR')} fg`;
+            document.getElementById('break-equipos').innerText = `${Math.round(cargaEquipos).toLocaleString('es-AR')} fg`;
+
+            if (chartInstance) {
+                chartInstance.data.datasets[0].data = [
+                    Math.round(cargaVolumen),
+                    Math.round(cargaVidrios),
+                    Math.round(cargaPersonas),
+                    Math.round(cargaEquipos)
+                ];
+                chartInstance.update();
+            }
+
+            // Selección comercial argentina
+            let equipoSeleccionado = ESCALONES_COMERCIALES[ESCALONES_COMERCIALES.length - 1];
+            for (let i = 0; i < ESCALONES_COMERCIALES.length; i++) {
+                if (ESCALONES_COMERCIALES[i].fg >= totalFrigorias) {
+                    equipoSeleccionado = ESCALONES_COMERCIALES[i];
+                    break;
+                }
+            }
+
+            const excedenteFg = equipoSeleccionado.fg - totalFrigorias;
+            const excedentePct = (excedenteFg / equipoSeleccionado.fg) * 100;
+
+            const badgeAjuste = document.getElementById('badge-ajuste');
+            const descAjuste = document.getElementById('res-comercial-desc');
+
+            document.getElementById('res-comercial-nombre').innerText = equipoSeleccionado.nombre;
+            document.getElementById('badge-top-equipo').innerText = `${equipoSeleccionado.fg.toLocaleString('es-AR')} fg`;
+
+            if (excedentePct < 6) {
+                badgeAjuste.className = "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-ios-orange text-white";
+                badgeAjuste.innerText = "Muy Ajustado";
+                descAjuste.innerText = `La carga (${txtFg} fg) está al límite. En días extremos de calor conviene considerar el escalón siguiente.`;
+            } else if (excedentePct > 28 && totalFrigorias < 6500) {
+                badgeAjuste.className = "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-ios-blue text-white";
+                badgeAjuste.innerText = "Holgado";
+                descAjuste.innerText = `Cubre holgadamente (+${Math.round(excedentePct)}% de reserva). Un equipo Inverter regulará su potencia sin consumir de más.`;
+            } else {
+                badgeAjuste.className = "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-ios-green text-white";
+                badgeAjuste.innerText = "Óptimo";
+                descAjuste.innerText = `Margen recomendado (+${Math.round(excedentePct)}%) para mantener 24°C confortables en plena ola de calor argentina.`;
+            }
+
+            renderMarketLadder(equipoSeleccionado.fg);
+            calculateElectricalCost(totalKW, equipoSeleccionado);
+        }
+
+        // --- CÁLCULO ELÉCTRICO Y FACTURA ARS ---
+        function calculateElectricalCost(totalKW, equipo) {
+            const horasDia = parseFloat(document.getElementById('range-horas-dia').value) || 8;
+            const diasMes = parseFloat(document.getElementById('input-dias-mes').value) || 30;
+            const tarifaKwh = parseFloat(document.getElementById('input-tarifa-kwh').value) || 130;
+
+            document.getElementById('val-horas-dia').innerText = horasDia;
+
+            const kwTermicosRequeridos = Math.max(0.8, totalKW);
+            const eerInverter = equipo.eer_inverter || 3.8;
+            const eerOnOff = equipo.eer_onoff || 2.8;
+
+            const potenciaInverter = (kwTermicosRequeridos / eerInverter);
+            const potenciaOnOff = (kwTermicosRequeridos / eerOnOff) * 1.15;
+
+            const kwhInverter = potenciaInverter * horasDia * diasMes;
+            const kwhOnOff = potenciaOnOff * horasDia * diasMes;
+
+            const costoInverter = kwhInverter * tarifaKwh;
+            const costoOnOff = kwhOnOff * tarifaKwh;
+
+            const ahorroMes = Math.max(0, costoOnOff - costoInverter);
+            const ahorroAnio = ahorroMes * 4;
+            const pct = costoOnOff > 0 ? Math.round((ahorroMes / costoOnOff) * 100) : 45;
+
+            const strCostoInv = `$ ${Math.round(costoInverter).toLocaleString('es-AR')}`;
+            document.getElementById('costo-inverter-mes').innerText = strCostoInv;
+            document.getElementById('badge-top-gasto').innerText = `${strCostoInv} / mes`;
+
+            document.getElementById('kwh-inverter-mes').innerText = Math.round(kwhInverter).toLocaleString('es-AR');
+            document.getElementById('potencia-inverter-kw').innerText = `${potenciaInverter.toFixed(2)} kW`;
+
+            document.getElementById('costo-onoff-mes').innerText = `$ ${Math.round(costoOnOff).toLocaleString('es-AR')}`;
+            document.getElementById('kwh-onoff-mes').innerText = Math.round(kwhOnOff).toLocaleString('es-AR');
+            document.getElementById('potencia-onoff-kw').innerText = `${potenciaOnOff.toFixed(2)} kW`;
+
+            document.getElementById('ahorro-mensual-pesos').innerText = `$ ${Math.round(ahorroMes).toLocaleString('es-AR')} / mes`;
+            document.getElementById('ahorro-anual-pesos').innerText = `$ ${Math.round(ahorroAnio).toLocaleString('es-AR')}`;
+            document.getElementById('ahorro-pct').innerText = `-${pct}%`;
+        }
+
+        function setHoras(hs) {
+            document.getElementById('range-horas-dia').value = hs;
+            calculateThermalLoad();
+        }
+
+        function setTarifa(t) {
+            document.getElementById('input-tarifa-kwh').value = t;
+            calculateThermalLoad();
+        }
+
+        function renderMarketLadder(selectedFg) {
+            const cont = document.getElementById('market-ladder');
+            cont.innerHTML = '';
+
+            ESCALONES_COMERCIALES.forEach(item => {
+                const isSelected = item.fg === selectedFg;
+                const div = document.createElement('div');
+                div.className = `p-2 rounded-xl border flex items-center justify-between ${
+                    isSelected 
+                        ? 'border-ios-blue bg-ios-blue/10 text-ios-blue font-bold ring-1 ring-ios-blue/30 shadow-xs' 
+                        : 'border-[var(--ios-border)] bg-[var(--ios-card)] text-[var(--ios-secondary)]'
+                }`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-1.5">
+                        ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-ios-blue"></span>' : ''}
+                        <span class="font-extrabold ${isSelected ? 'text-ios-blue' : 'text-[var(--ios-text)]'}">${item.fg.toLocaleString('es-AR')} fg</span>
+                    </div>
+                    <span class="text-[10px] opacity-75">${item.btu.toLocaleString('es-AR')} BTU</span>
+                `;
+                cont.appendChild(div);
+            });
+        }
+
+        function loadPreset(type) {
+            ambientesAdicionales = [];
+            nextAmbienteId = 1;
+
+            if (type === 'dormitorio') {
+                document.getElementById('input-largo').value = "3.5";
+                document.getElementById('disp-largo').innerText = "3.5";
+                document.getElementById('input-ancho').value = "3.5";
+                document.getElementById('disp-ancho').innerText = "3.5";
+                document.getElementById('input-alto').value = "2.6";
+                document.getElementById('disp-alto').innerText = "2.6";
+                document.getElementById('select-techo').value = "1.15";
+                document.getElementById('select-muros').value = "1";
+                document.getElementById('range-vidrio-sol').value = "1.5";
+                document.getElementById('range-vidrio-sombra').value = "0";
+                document.getElementById('check-dvh').checked = false;
+                document.getElementById('input-personas').value = "2";
+                document.getElementById('input-equipos').value = "1";
+                document.getElementById('check-cocina').checked = false;
+                document.getElementById('range-horas-dia').value = "8";
+            } else if (type === 'living') {
+                document.getElementById('input-largo').value = "5.0";
+                document.getElementById('disp-largo').innerText = "5.0";
+                document.getElementById('input-ancho').value = "4.0";
+                document.getElementById('disp-ancho').innerText = "4.0";
+                document.getElementById('input-alto').value = "2.7";
+                document.getElementById('disp-alto').innerText = "2.7";
+                document.getElementById('select-techo').value = "1.15";
+                document.getElementById('select-muros').value = "2";
+                document.getElementById('range-vidrio-sol').value = "3.0";
+                document.getElementById('range-vidrio-sombra').value = "1.0";
+                document.getElementById('check-dvh').checked = false;
+                document.getElementById('input-personas').value = "4";
+                document.getElementById('input-equipos').value = "2";
+                document.getElementById('check-cocina').checked = false;
+                document.getElementById('range-horas-dia').value = "6";
+                ambientesAdicionales.push({
+                    id: nextAmbienteId++,
+                    nombre: "Comedor en L",
+                    largo: 3.5,
+                    ancho: 3.0,
+                    alto: 2.7
+                });
+            } else if (type === 'oficina') {
+                document.getElementById('input-largo').value = "6.0";
+                document.getElementById('disp-largo').innerText = "6.0";
+                document.getElementById('input-ancho').value = "4.5";
+                document.getElementById('disp-ancho').innerText = "4.5";
+                document.getElementById('input-alto').value = "2.8";
+                document.getElementById('disp-alto').innerText = "2.8";
+                document.getElementById('select-techo').value = "1.0";
+                document.getElementById('select-muros').value = "1";
+                document.getElementById('range-vidrio-sol').value = "2.0";
+                document.getElementById('range-vidrio-sombra').value = "3.0";
+                document.getElementById('check-dvh').checked = true;
+                document.getElementById('input-personas').value = "5";
+                document.getElementById('input-equipos').value = "6";
+                document.getElementById('check-cocina').checked = false;
+                document.getElementById('range-horas-dia').value = "9";
+            } else if (type === 'monoambiente') {
+                document.getElementById('input-largo').value = "6.5";
+                document.getElementById('disp-largo').innerText = "6.5";
+                document.getElementById('input-ancho').value = "3.8";
+                document.getElementById('disp-ancho').innerText = "3.8";
+                document.getElementById('input-alto').value = "2.6";
+                document.getElementById('disp-alto').innerText = "2.6";
+                document.getElementById('select-techo').value = "1.15";
+                document.getElementById('select-muros').value = "1";
+                document.getElementById('range-vidrio-sol').value = "2.5";
+                document.getElementById('range-vidrio-sombra').value = "1.0";
+                document.getElementById('check-dvh').checked = false;
+                document.getElementById('input-personas').value = "2";
+                document.getElementById('input-equipos').value = "3";
+                document.getElementById('check-cocina').checked = true;
+                document.getElementById('range-horas-dia').value = "10";
+            }
+
+            renderizarAmbientesAdicionales();
+            calculateThermalLoad();
+            showToast("Plantilla cargada con éxito");
+        }
+
+        // --- COMPARTIR Y COPIAR (WhatsApp & Portapapeles) ---
+        function getReportText() {
+            const largo = document.getElementById('input-largo').value;
+            const ancho = document.getElementById('input-ancho').value;
+            const alto = document.getElementById('input-alto').value;
+            const frigorias = document.getElementById('res-frigorias').innerText;
+            const btu = document.getElementById('res-btu').innerText;
+            const recomendado = document.getElementById('res-comercial-nombre').innerText;
+            const horas = document.getElementById('val-horas-dia').innerText;
+            const tarifa = document.getElementById('input-tarifa-kwh').value;
+            const costoInverter = document.getElementById('costo-inverter-mes').innerText;
+            const costoOnOff = document.getElementById('costo-onoff-mes').innerText;
+            const ahorro = document.getElementById('ahorro-mensual-pesos').innerText;
+
+            let detalle = `• Ambiente Principal: ${largo}m x ${ancho}m x ${alto}m\n`;
+            ambientesAdicionales.forEach(a => {
+                detalle += `• ${a.nombre}: ${a.largo}m x ${a.ancho}m x ${a.alto}m\n`;
+            });
+
+            return `📋 *INFORME TÉCNICO DE CLIMATIZACIÓN*\n` +
+                   `-----------------------------------------\n` +
+                   `📐 *Espacios Evaluados:*\n${detalle}` +
+                   `❄️ *Carga Térmica Requerida:* ${frigorias} fg/h (${btu} BTU)\n` +
+                   `⭐ *Equipo Sugerido:* ${recomendado}\n` +
+                   `-----------------------------------------\n` +
+                   `⚡ *Estimación Eléctrica (${horas}h/día @ $${tarifa}/kWh):*\n` +
+                   `• Split Inverter (Clase A): ${costoInverter}\n` +
+                   `• Split Tradicional: ${costoOnOff}\n` +
+                   `💰 *Ahorro Inverter:* ${ahorro}\n` +
+                   `-----------------------------------------\n` +
+                   `Generado con ClimaCalc Pro (Normas IRAM/ASHRAE 24°C)`;
+        }
+
+        function copyReport() {
+            const text = getReportText();
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            showToast("Ficha técnica copiada al portapapeles");
+        }
+
+        function shareWhatsApp() {
+            const text = getReportText();
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('ios-toast');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
+
+        // --- INICIALIZACIÓN ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initChart();
+
+            const rangeInputs = ['range-vidrio-sol', 'range-vidrio-sombra', 'range-horas-dia'];
+            rangeInputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', calculateThermalLoad);
+            });
+
+            calculateThermalLoad();
+        });
+    </script>
+</body>
+</html>
